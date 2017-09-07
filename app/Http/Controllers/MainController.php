@@ -40,14 +40,14 @@ class MainController extends Controller
   {
     $info = Option::select('website')->first();
 
-    return Response::json($info)->setCallback($request->input('callback'));
+    return Response::json($info);
   }
 
   public function main(Request $request)
   {
     $options = Option::select('website', 'baseurl', 'siteLogo', 'aboutWebsite')->first();
 
-    return Response::json(['options' => $options])->setCallback($request->input('callback'));
+    return Response::json(['options' => $options]);
   }
 
   public function getTopics(Request $request, $channel = 0, $count = 25)
@@ -81,7 +81,7 @@ class MainController extends Controller
         }
       }
     }
-    return Response::json($topics)->setCallback($request->input('callback'));
+    return Response::json($topics);
   }
 
   public function getNew(Request $request, $channel = 0, $count = 25)
@@ -105,7 +105,7 @@ class MainController extends Controller
         }
       }
     }
-    return Response::json($topics)->setCallback($request->input('callback'));
+    return Response::json($topics);
   }
 
   public function getFeatured(Request $request)
@@ -122,21 +122,21 @@ class MainController extends Controller
       }
     }
 
-    return Response::json($features)->setCallback($request->input('callback'));
+    return Response::json($features);
   }
 
   public function getChannels(Request $request)
   {
     $channels = Fchannel::where('channelArchived', '=', 0)->select('id', 'channelTitle', 'channelSlug', 'channelDesc', 'channelImg', 'channelTopics')->orderBy('created_at', 'DESC')->get();
 
-    return Response::json($channels)->setCallback($request->input('callback'));
+    return Response::json($channels);
   }
 
   public function getChannel(Request $request, $slug)
   {
     $channel = Fchannel::where('channelSlug', '=', $slug)->select('id', 'channelTitle', 'channelSlug', 'channelDesc', 'channelTopics')->first();
 
-    return Response::json($channel)->setCallback($request->input('callback'));
+    return Response::json($channel);
   }
 
   public function getDetail(Request $request, $slug)
@@ -150,7 +150,7 @@ class MainController extends Controller
     $previousTopic = Ftopic::where('ftopics.id', '<', $topic->id)->where('topicChannel', '=', $topic->topicChannel)->select('ftopics.id', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel', 'ftopics.created_at')->orderBy('ftopics.id','desc')->first();
     $nextTopic = Ftopic::where('ftopics.id', '>', $topic->id)->where('topicChannel', '=', $topic->topicChannel)->select('ftopics.id', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel', 'ftopics.created_at')->orderBy('ftopics.id','asc')->first();
 
-    return Response::json(['topic' => $topic, 'user' => $user, 'previousTopic' => $previousTopic, 'nextTopic' => $nextTopic])->setCallback($request->input('callback'));
+    return Response::json(['topic' => $topic, 'user' => $user, 'previousTopic' => $previousTopic, 'nextTopic' => $nextTopic]);
   }
 
   public function getReplies(Request $request, $slug)

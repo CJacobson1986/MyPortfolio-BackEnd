@@ -9,16 +9,13 @@ use App\Http\Controllers\Controller;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Hash;
+use Hash;
 use App\User;
 use App\Role;
 use App\Option;
-use App\Subscription;
-use \Input;
 use \Response;
 use \Image;
 use \Auth;
-use \Redirect;
 use \DB;
 use \Purifier;
 
@@ -29,11 +26,6 @@ class AuthenticateController extends Controller
     $this->middleware('jwt.auth', ['except' => ['authenticate', 'getAuth', 'doSignUp', 'confirmToken', 'storeSubscription', 'confirmSubscription', 'refreshToken']]);
   }
 
- public function index()
- {
-
- }
-
   public function doSignUp(Request $request)
   {
     $rules = [
@@ -41,7 +33,7 @@ class AuthenticateController extends Controller
       'username'			=>	'required',
       'password'			=>	'required'
     ];
-    $validator = Validator::make(Purifier::clean($request->json()->all()), $rules);
+    $validator = Validator::make(Purifier::clean($request->all()), $rules);
 
     if ($validator->fails()) {
       return Response::json(['error' => 'Please fill out all fields.']);
@@ -49,8 +41,13 @@ class AuthenticateController extends Controller
 
       $options = Option::find(1);
 
-      if($options->allowRegistration == 1)
-      {
+
+        $email = $request->input('email');
+        $username = $request->input('username');
+        $fullname = $request->input('fullname');
+        $password = $request->input('password');
+
+        $username = preg_replace('/[^0-9A-Z]/i',"",$username);
         $sub = substr($username, 0, 2);
 
         if(empty($fullName))
@@ -69,39 +66,25 @@ class AuthenticateController extends Controller
           $user->email = $email;
           $user->name = $username;
           $user->password = Hash::make($password);
-          $user->displayName = $fullName;
           $user->avatar = "https://invatar0.appspot.com/svg/".$sub.".jpg?s=100";
-
-          $options = Option::first();
-          $website = $options->website;
-          $url = $options->baseurl;
-
-
-
-
-  public function confirmToken(Request $request)
-  {
-    $token = Purifier::clean($request->json('token'));
-    $user = User::where('activation_token','=',$token)->first();
-
-    if(!empty($user))
-    {
-      if($user->activated == 0)
-      {
-        $user->activated = 1;
-        $user->save();
-        //Success
-        return Response::json(['success' => 'Thanks for signing up.']);
-      }
-      else {
-        //User Activated already
-        return Response::json(['error'=> 'Email already used.']);
-      }
-    } else {
-      //User not found
-      return Response::json(['error'=> 'User not found']);
+          $user->roleID = 2;
+          $user->save();
+          return Response::json(['success'=>"Thank you for signing up."]);
+        } else {
+          if($userCheck->email === $email)
+          {
+            //Email Already Registered
+            return Response::json(['error'=> 'Email already registered.']);
+          }
+          elseif($userCheck->name === $username)
+          {
+            //Username already Registered
+            return Response::json(['error'=> 'Please choose another username.']);
+          }
+        }
     }
   }
+
 
   public function authenticate(Request $request)
   {
@@ -116,10 +99,10 @@ class AuthenticateController extends Controller
         $credentials = compact("email", "password", $cred);
         try {
           if (! $token = JWTAuth::attempt($credentials)) {
-              return response()->json(['error' => 'invalid_credentials'], 401);
+              return response()->json(['error' => 'invalid_credentials']);
           }
         } catch (JWTException $e) {
-            return response()->json(['error' => 'could_not_create_token'], 500);
+            return response()->json(['error' => 'could_not_create_token']);
         }
         if($userCheck->ban == 1) {
           //User is banned
@@ -132,7 +115,7 @@ class AuthenticateController extends Controller
             return Response::json(['error' => 'User not active.']);
           }
           else {
-            return Response::json(compact('token'))->setCallback($request->input('callback'));
+            return Response::json(compact('token'));
           }
         }
       } else {
@@ -155,19 +138,5 @@ class AuthenticateController extends Controller
         return response()->json(['token_absent'], $e->getStatusCode());
       }
       return response()->json(compact('user'))->setCallback($request->input('callback'));
-  }
-
-  public function refreshToken(Request $request) {
-    $token = JWTAuth::getToken();
-    if(!$token){
-        throw new BadRequestHtttpException('Token not provided');
-    }
-    try{
-        $token = JWTAuth::refresh($token);
-    }catch(TokenInvalidException $e){
-        throw new AccessDeniedHttpException('The token is invalid');
-    }
-
-    return Response::json($token)->setCallback($request->input('callback'));
   }
 }
