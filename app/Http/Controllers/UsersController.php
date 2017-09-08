@@ -29,16 +29,41 @@ class UsersController extends Controller
   {
     $user = Auth::user();
 
-    $users = User::join('roles', 'users.role', '=', 'roles.id')->select('users.id', 'users.name', 'users.displayName', 'users.email', 'users.avatar', 'users.topics', 'users.replies', 'users.role', 'users.activated', 'users.ban', 'users.last_login', 'users.created_at', 'roles.roleName')->get();
+    $users = User::join('roles', 'users.roleID', '=', 'roles.id')->select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.replies', 'users.roleID', 'users.activated', 'users.ban', 'users.last_login', 'users.created_at', 'roles.roleName')->get();
     $roles = Role::select('id', 'roleName', 'roleSlug', 'roleDesc', 'roleCount')->get();
 
     return Response::json(['users' => $users, 'roles' => $roles]);
   }
 
+  public function getUser(Request $request, $name)
+  {
+    $user = User::where('users.name', '=', $name)->where('users.ban', '=', 0)->join('roles', 'users.roleID', '=', 'roles.id')->select('users.id', 'users.name', 'users.avatar', 'roles.roleName', 'users.created_at')->first();
+
+    if(!empty($user))
+    {
+      return Response::json($user);
+    }
+    else
+    {
+      return Response::json(['error'=> 'Not an active user.']);
+    }
+  }
+
+public function deactivateUser()
+{
+  $user = Auth::user();
+  $user = User::find($user->id);
+
+  $user->activated == 0;
+  $user->save();
+
+  return Response::json(['success'=> 'User has been deactivated.']);
+}
+
   public function editUser(Request $request, $id)
   {
     $user = Auth::user();
-    if($user->role == 1)
+    if($user->roleID == 1)
     {
       $user = User::find($id);
 
@@ -100,7 +125,7 @@ class UsersController extends Controller
   public function updateProfile(Request $request, $id)
   {
     $user = Auth::user();
-    if($user->role == 1)
+    if($user->roleID == 1)
     {
       $profile = User::find($id);
 

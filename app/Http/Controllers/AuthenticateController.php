@@ -85,11 +85,10 @@ class AuthenticateController extends Controller
     }
   }
 
-
   public function authenticate(Request $request)
   {
-      $email = $request->json('email');
-      $password = $request->json('password');
+      $email = $request->input('email');
+      $password = $request->input('password');
       $hash = Hash::make($password);
       $options = Option::find(1);
       $userCheck = User::where('email', '=', $email)->first();
@@ -99,7 +98,7 @@ class AuthenticateController extends Controller
         $credentials = compact("email", "password", $cred);
         try {
           if (! $token = JWTAuth::attempt($credentials)) {
-              return response()->json(['error' => 'invalid_credentials']);
+              return response()->json(['error' => 'invalid credentials']);
           }
         } catch (JWTException $e) {
             return response()->json(['error' => 'could_not_create_token']);
@@ -109,14 +108,7 @@ class AuthenticateController extends Controller
           return Response::json(['So Sorry' => 'You have been banned.']);
         }
         else {
-          if($options->requireActivation == 1 && $userCheck->activated == 0)
-          {
-            //Require Activation
-            return Response::json(['error' => 'User not active.']);
-          }
-          else {
-            return Response::json(compact('token'));
-          }
+          return Response::json(compact('token'));
         }
       } else {
         //User not found
@@ -128,7 +120,7 @@ class AuthenticateController extends Controller
   {
       try {
         if (! $user = JWTAuth::parseToken()->authenticate()) {
-          return response()->json(['user_not_found'], 404);
+          return response()->json(['user_not_found']);
         }
       } catch (Tymon\JWTAuth\Exceptions\TokenExpiredException $e) {
         return response()->json(['token_expired'], $e->getStatusCode());
@@ -137,6 +129,6 @@ class AuthenticateController extends Controller
       } catch (Tymon\JWTAuth\Exceptions\JWTException $e) {
         return response()->json(['token_absent'], $e->getStatusCode());
       }
-      return response()->json(compact('user'))->setCallback($request->input('callback'));
+      return response()->json(compact('user'));
   }
 }
