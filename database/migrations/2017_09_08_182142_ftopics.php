@@ -15,6 +15,7 @@ class Ftopics extends Migration
     {
       Schema::create('ftopics', function (Blueprint $table) {
         $table->increments('id');
+        $table->integer('userID');
         $table->string('topicSlug');
         $table->string('topicTitle', 80);
         $table->longText('topicBody')->nullable();

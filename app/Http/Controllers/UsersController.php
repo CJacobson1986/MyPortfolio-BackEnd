@@ -22,22 +22,22 @@ class UsersController extends Controller
 {
   public function __construct()
   {
-    $this->middleware('jwt.auth', ['except' => ['getUsers']]);
+    $this -> middleware('jwt.auth', ['except' => ['getUsers']]);
   }
 
   public function getUsers(Request $request)
   {
     $user = Auth::user();
 
-    $users = User::join('roles', 'users.roleID', '=', 'roles.id')->select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.replies', 'users.roleID', 'users.activated', 'users.ban', 'users.last_login', 'users.created_at', 'roles.roleName')->get();
-    $roles = Role::select('id', 'roleName', 'roleSlug', 'roleDesc', 'roleCount')->get();
+    $users = User::join('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.roleID', 'users.activated', 'users.ban', 'roles.roleName') -> get();
+    $roles = Role::select('id', 'roleName', 'roleSlug', 'roleDesc', 'roleCount') -> get();
 
     return Response::json(['users' => $users, 'roles' => $roles]);
   }
 
   public function getUser(Request $request, $name)
   {
-    $user = User::where('users.name', '=', $name)->where('users.ban', '=', 0)->join('roles', 'users.roleID', '=', 'roles.id')->select('users.id', 'users.name', 'users.avatar', 'roles.roleName', 'users.created_at')->first();
+    $user = User::where('users.name', '=', $name) -> where('users.ban', '=', 0) -> join('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.avatar', 'roles.roleName') -> first();
 
     if(!empty($user))
     {
@@ -54,8 +54,8 @@ public function deactivateUser()
   $user = Auth::user();
   $user = User::find($user->id);
 
-  $user->activated == 0;
-  $user->save();
+  $user -> activated == 0;
+  $user -> save();
 
   return Response::json(['success'=> 'User has been deactivated.']);
 }
@@ -76,21 +76,21 @@ public function deactivateUser()
   public function banUser(Request $request, $id)
   {
     $user = Auth::user();
-    if($user->role == 1)
+    if($user -> roleID == 1)
     {
       $user = User::find($id);
       $options = Option::find(1);
-      if($user->id != $options->owner)
+      if($user -> id != $options->owner)
       {
-        if($user->ban == 0)
+        if($user -> ban == 0)
         {
-          $user->ban = 1;
-          $user->save();
+          $user -> ban = 1;
+          $user -> save();
           return Response::json(['success'=> 'User has been placed on the ban list.']);
         }
         else {
-          $user->ban = 0;
-          $user->save();
+          $user -> ban = 0;
+          $user -> save();
           return Response::json(['success'=> 'User has been removed from the ban list.']);
         }
       }
@@ -105,11 +105,11 @@ public function deactivateUser()
   public function deleteUser(Request $request, $id)
   {
     $user = Auth::user();
-    if($user->role == 1)
+    if($user -> roleID == 1)
     {
       $user = User::find($id);
       $options = Option::find(1);
-      if($user->id != $options->owner)
+      if($user -> id != $options -> owner)
       {
         $user->delete();
         return Response::json(['success'=> 'User has been removed.']);
@@ -125,38 +125,22 @@ public function deactivateUser()
   public function updateProfile(Request $request, $id)
   {
     $user = Auth::user();
-    if($user->roleID == 1)
+    if($user -> roleID == 1)
     {
       $profile = User::find($id);
 
-      $displayName = $request->input('displayName');
       $email = $request->input('email');
       $avatar = $request->file('avatar');
       $password = $request->input('password');
       $confirm = $request->input('confirm');
-      $emailReply = $request->input('emailReply');
-      $emailDigest = $request->input('emailDigest');
+      //$emailDigest = $request->input('emailDigest');
+      //Need to add code for the weekly/monthly auto-email system
 
-      if($displayName == NULL)
-      {
-        $displayName = $profile->name;
-      }
-      else {
-        $profile->displayName = $displayName;
-      }
+
       if($email != NULL)
       {
-        $profile->email = $email;
+        $profile -> email = $email;
       }
-      if($emailReply != NULL)
-      {
-        $profile->website = $emailReply;
-      }
-      if($emailDigest != NULL)
-      {
-        $profile->emailDigest = $emailDigest;
-      }
-
       if($avatar != NULL)
       {
 
@@ -166,9 +150,9 @@ public function deactivateUser()
           mkdir($imageFile,0777,true);
         }
 
-        $ext = $avatar->getClientOriginalExtension();
+        $ext = $avatar -> getClientOriginalExtension();
         $fileName = str_random(8);
-        $avatar->move($imageFile, $fileName.'.'.$ext);
+        $avatar -> move($imageFile, $fileName.'.'.$ext);
         $avatar = $imageFile.'/'.$fileName.'.'.$ext;
 
         if (extension_loaded('fileinfo')) {
@@ -196,7 +180,7 @@ public function deactivateUser()
         if($password === $confirm)
         {
           $password = Hash::make($password);
-          $profile->password = $password;
+          $profile -> password = $password;
         } else {
           return Response::json(['error'=> 'Unauthorized user.']);
         }
@@ -204,7 +188,7 @@ public function deactivateUser()
 
       $profile->save();
 
-      $userData= User::where('users.id', '=', $profile->id)->join('roles', 'users.role', '=', 'roles.id')->select('users.id', 'users.name', 'users.displayName', 'users.email', 'users.location', 'users.website', 'users.aboutMe', 'users.profileTitle', 'users.avatar', 'users.topics', 'users.replies', 'users.role', 'users.activated', 'users.ban', 'users.last_login', 'users.created_at', 'roles.roleName')->first();
+      $userData = User::where('users.id', '=', $profile->id) -> join('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.roleID', 'users.ban') -> first();
       return Response::json(['success'=> 'Your profile has been updated.']);
 
     } else {
@@ -215,38 +199,25 @@ public function deactivateUser()
   public function storeRole(Request $request)
   {
     $user = Auth::user();
-    if($user->role == 1)
+    if($user -> roleID == 1)
     {
       $rules = array(
-        'roleName'		=> 	'required'
+        'name' => 'required'
       );
-      $validator = Validator::make($request->json()->all(), $rules);
+      $validator = Validator::make($request->all(), $rules);
 
-      if ($validator->fails()) {
-          return Response::json(['error'=> 'Please fill out role.']);
+      if ($validator -> fails()) {
+          return Response::json(['error'=> 'Please fill out name.']);
       } else {
 
-        $roleName = $request->json('roleName');
-        $roleDesc = $request->json('roleDesc');
-        $roleSlug = preg_replace("/ /","+",$roleName);
-
-        if (Role::where('roleSlug', '=', $roleSlug)->exists()) {
-           $roleSlug = $roleSlug.'_'.mt_rand(1, 9999);
-        }
-        if(empty($roleDesc))
-        {
-          $roleDesc = "No Description";
-        }
+        $roleName = $request -> input('name');
 
         $role = new Role;
 
-        $role->roleName = $roleName;
-        $role->roleDesc = $roleDesc;
-        $role->roleSlug = $roleSlug;
-        $role->roleCount = 0;
-        $role->save();
+        $role -> name = $roleName;
+        $role -> save();
 
-        $roleData = Role::where('id', '=', $role->id)->select('id', 'roleName', 'roleSlug', 'roleDesc', 'roleCount')->first();
+        $roleData = Role::where('id', '=', $role->id) -> select('id') -> first();
         return Response::json($roleData);
       }
     } else {
@@ -257,7 +228,7 @@ public function deactivateUser()
   public function editRole(Request $request, $id)
   {
     $user = Auth::user();
-    if($user->role == 1)
+    if($user -> roleID == 1)
     {
       $role = Role::find($id);
 
@@ -270,36 +241,23 @@ public function deactivateUser()
   public function updateRole(Request $request, $id)
   {
     $user = Auth::user();
-    if($user->role == 1)
+    if($user -> roleID == 1)
     {
       $rules = array(
-        'roleName'		=> 	'required'
+        'name' => 'required'
       );
-      $validator = Validator::make($request->json()->all(), $rules);
+      $validator = Validator::make($request->all(), $rules);
 
-      if ($validator->fails()) {
+      if ($validator -> fails()) {
           return Response::json(['error'=> 'Please enter all fields.']);
       } else {
 
         $role = Role::find($id);
-        $roleName = $request->json('roleName');
-        $roleDesc = $request->json('roleDesc');
-
-        $roleCheck = Role::where('roleName', '=', $roleName)->first();
+        $role -> name = $roleName;
+        $roleCheck = Role::where('name', '=', $roleName)->first();
         if(empty($roleCheck))
         {
-          $role->roleName = $roleName;
-          $roleSlug = preg_replace("/ /","+",$roleName);
-          if (Role::where('roleSlug', '=', $roleSlug)->exists()) {
-             $roleSlug = $roleSlug.'+'.mt_rand(1, 9999);
-          }
-          $role->roleSlug = $roleSlug;
-          $role->roleDesc = $roleDesc;
           $role->save();
-          if(empty($roleDesc))
-          {
-            $roleDesc = "No Description";
-          }
         }
         return Response::json($role);
       }
@@ -311,23 +269,23 @@ public function deactivateUser()
   public function deleteRole(Request $request, $id)
   {
     $user = Auth::user();
-    if($user->role == 1)
+    if($user -> roleID == 1)
     {
       $role = Role::find($id);
 
-      if($role->id != 1 && $role->id != 2)
+      if($role -> id != 1 && $role -> id != 2)
       {
-        $users = User::where('role', '=', $role->roleName)->get();
+        $users = User::where('role', '=', $role -> roleName)->get();
         $newRole = Role::find(2);
         if($users->isEmpty())
         {
           foreach($users as $key => $value)
           {
-            $value->role = $newRole->roleName;
+            $value -> role = $newRole -> roleName;
             $value->save();
           }
         }
-        $role->delete();
+        $role -> delete();
         return Response::json(['success'=> 'Role deleted.']);
       }
       else {
@@ -342,24 +300,24 @@ public function deactivateUser()
   {
     $user = Auth::user();
 
-    if($user->role == 1)
+    if($user -> roleID == 1)
     {
       $user = User::find($id);
-      $role = $request->json('roleID');
+      $role = $request -> json('roleID');
 
       $roleCheck = Role::where('id', '=', $role)->first();
       if(!empty($roleCheck))
       {
         $option = Option::find(1);
-        if($user->id == $option->owner)
+        if($user -> id == $option -> owner)
         {
           //Role Cannot be changed.
           return Response::json(['error'=> 'Unable to change role.']);
         } else {
-          $user->role = $role;
-          $user->save();
+          $user -> role = $role;
+          $user -> save();
           //Success
-          $userData = User::where('users.id', '=', $user->id)->join('roles', 'users.role', '=', 'roles.id')->select('users.id', 'users.name', 'users.displayName', 'users.email', 'users.location', 'users.website', 'users.aboutMe', 'users.profileTitle', 'users.avatar', 'users.topics', 'users.replies', 'users.role', 'users.activated', 'users.ban', 'users.last_login', 'users.created_at', 'roles.roleName')->first();
+          $userData = User::where('users.id', '=', $user->id) -> join('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.roleID', 'users.ban') -> first();
           return Response::json($userData);
         }
       } else {

@@ -8,9 +8,9 @@ class CommentController extends Controller
 {
   public function getReplies(Request $request, $slug)
   {
-    $topic = Ftopic::where('ftopics.topicSlug', '=', $slug)->select('ftopics.id')->first();
+    $topic = Ftopic::where('ftopics.topicSlug', '=', $slug) -> select('ftopics.id') -> first();
 
-    $replies = Freply::where('freplies.topicID', '=', $topic->id)->join('users', 'freplies.replyAuthor', '=', 'users.id')->orderBy('freplies.created_at', 'ASC')->select('freplies.id', 'freplies.created_at', 'freplies.replyBody', 'freplies.replyAuthor', 'users.avatar', 'users.name', 'users.displayName')->paginate(25)->toArray();
+    $replies = Freply::where('freplies.topicID', '=', $topic -> id) -> join('users', '=', 'users.id') -> orderBy('freplies.userID', 'freplies.created_at', 'DESC') -> select('freplies.id', 'freplies,userID', 'users.avatar', 'users.name') -> paginate(25) -> toArray();
 
 
     return Response::json(['replies' => $replies]);
@@ -22,32 +22,32 @@ class CommentController extends Controller
       'topicID'		=> 	'required',
       'replyBody'			=>	'required'
     );
-    $validator = Validator::make($request->json()->all(), $rules);
+    $validator = Validator::make($request -> all(), $rules);
 
-    if ($validator->fails()) {
+    if ($validator -> fails()) {
         return Response::json(['error'=> 'Please fill out all fields']);
     } else {
 
-      $topicID = $request->input('topicID');
-      $replyBody = $request->input('replyBody');
-      $replyAuthor = Auth::user();
+      $topicID = $request -> input('topicID');
+      $replyBody = $request -> input('replyBody');
+      $userID = Auth::user();
 
       $topicCheck = Ftopic::find($topicID);
-      if($topicCheck->allowReplies == 0)
+      if($topicCheck -> allowReplies == 0)
       {
         return Response::json(['Sorry'=> 'Did not find the topic.']);
       }
 
-      $pastReplies = Freply::where('replyAuthor', '=', $replyAuthor->id)->select('id', 'created_at')->orderBy('id', 'DESC')->skip(5)->take(1)->first();
+      $pastReplies = Freply::where('userID', '=', $userID -> id) -> select('id', 'created_at') -> orderBy('id', 'created_at', 'DESC') -> skip(5) -> take(1) -> first();
       $currentTime = date('Y-m-d H:i:s');
 
-      if(!empty($pastReplies) && $replyAuthor->roleID != 1)
+      if(!empty($pastReplies) && $userID -> roleID != 1)
       {
-        $datetime1 = new DateTime($pastReplies->created_at);
+        $datetime1 = new DateTime($pastReplies -> created_at);
         $datetime2 = new DateTime($currentTime);
-        $interval = $datetime1->diff($datetime2);
+        $interval = $datetime1 -> diff($datetime2);
 
-        if($interval->format('%a%H') < 1) {
+        if($interval -> format('%a%H') < 1) {
           return Response::json(['Sorry'=> 'Please wait longer to make another reply.']);
         }
       }
@@ -62,7 +62,7 @@ class CommentController extends Controller
         $replyBody = Purifier::clean($replyBody);
 
         $converter = new HtmlConverter();
-        $replyBody = $converter->convert($replyBody);
+        $replyBody = $converter -> convert($replyBody);
 
         if(substr_count($replyBody, 'img') > 1 || substr_count($replyBody, 'href') > 1 || substr_count($replyBody, 'youtube.com') > 1)
         {
@@ -72,18 +72,17 @@ class CommentController extends Controller
 
 
           $reply = new Freply;
-          $reply->topicID = $topicID;
-          $reply->replyBody = $replyBody;
-          $reply->replyAuthor = $replyAuthor->id;
+          $reply -> topicID = $topicID;
+          $reply -> replyBody = $replyBody;
+          $reply -> userID = $userID -> id;
 
-          $reply->save();
+          $reply -> save();
 
-          $replyAuthor->increment('replies');
-          $topic = Ftopic::where('id', '=', $topicID)->first();
-          $topic->increment('topicReplies');
+          $userID -> increment('replies');
+          $topic = Ftopic::where('id', '=', $topicID) -> first();
+          $topic -> increment('topicReplies');
 
-          $replyData = Freply::where('freplies.id', '=', $reply->id)->join('users', 'freplies.replyAuthor', '=', 'users.id')->select('freplies.id', 'freplies.created_at', 'freplies.replyBody', 'users.avatar', 'users.name', 'users.displayName')->first();
-          $replyData['childReplies'] = array();
+          $replyData = Freply::where('freplies.id', '=', $reply -> id) -> join('users', 'freplies.userID', '=', 'users.id') -> select('freplies.id', 'freplies.created_at', 'freplies.replyBody', 'users.avatar', 'users.name') -> first();
           return Response::json($replyData);
         }
       }
@@ -96,37 +95,37 @@ class CommentController extends Controller
     $user = Auth::user();
     $reply = Freply::find($id);
 
-    if($user->roleID == 1 || $user->id == $reply->replyAuthors)
+    if($user -> roleID == 1 || $user -> id == $reply -> userID)
     {
       $rules = array(
         'replyBody'			=>	'required'
       );
-      $validator = Validator::make($request->json()->all(), $rules);
+      $validator = Validator::make($request->all(), $rules);
 
       if ($validator->fails()) {
           return Response::json(['error'=> 'Please enter a reply.']);
       } else {
 
-        $replyBody = $request->input('replyBody');
-        $replyAuthor = Auth::user();
-        $topicID = $reply->topicID;
+        $replyBody = $request -> input('replyBody');
+        $userID = Auth::user();
+        $topicID = $reply -> topicID;
 
         $topicCheck = Ftopic::find($topicID);
-        if($topicCheck->allowReplies == 0)
+        if($topicCheck -> allowReplies == 0)
         {
           return Response::json(['success'=> 'Thank you for your reply.']);
         }
 
-        $pastReplies = Freply::where('replyAuthor', '=', $replyAuthor->id)->select('id', 'created_at')->orderBy('id', 'DESC')->skip(5)->take(1)->first();
+        $pastReplies = Freply::where('userID', '=', $userID->id) -> select('id', 'created_at') -> orderBy('id', 'created_at', 'DESC') -> skip(5) -> take(1) -> first();
         $currentTime = date('Y-m-d H:i:s');
 
-        if(!empty($pastReplies) && $replyAuthor->role != 1)
+        if(!empty($pastReplies) && $userID -> roleID != 1)
         {
-          $datetime1 = new DateTime($pastReplies->created_at);
+          $datetime1 = new DateTime($pastReplies -> created_at);
           $datetime2 = new DateTime($currentTime);
-          $interval = $datetime1->diff($datetime2);
+          $interval = $datetime1 -> diff($datetime2);
 
-          if($interval->format('%a%H') < 1) {
+          if($interval -> format('%a%H') < 1) {
             return Response::json(['Sorry'=> 'Please wait longer to make another reply.']);
           }
         }
@@ -139,9 +138,8 @@ class CommentController extends Controller
 
           $replyBody = Markdown::convertToHtml($replyBody);
           $replyBody = Purifier::clean($replyBody);
-
           $converter = new HtmlConverter();
-          $replyBody = $converter->convert($replyBody);
+          $replyBody = $converter -> convert($replyBody);
 
           if(substr_count($replyBody, 'img') > 1 || substr_count($replyBody, 'href') > 1 || substr_count($replyBody, 'youtube.com') > 1)
           {
@@ -149,10 +147,10 @@ class CommentController extends Controller
           }
           else {
 
-            $reply->replyBody = $replyBody;
-            $reply->save();
+            $reply -> replyBody = $replyBody;
+            $reply -> save();
 
-            $replyData = Freply::where('freplies.id', '=', $reply->id)->join('users', 'freplies.replyAuthor', '=', 'users.id')->select('freplies.id',  'freplies.created_at', 'freplies.replyBody', 'users.avatar', 'users.name', 'users.displayName')->first();
+            $replyData = Freply::where('freplies.id', '=', $reply->id) -> join('users', 'freplies.userID', '=', 'users.id') -> select('freplies.id',  'freplies.created_at', 'freplies.replyBody', 'users.avatar', 'users.name') -> first();
             return Response::json($replyData);
           }
         }
@@ -165,32 +163,31 @@ class CommentController extends Controller
   public function deleteReply(Request $request)
   {
     $user = Auth::user();
-    $id = $request->input('replyID');
+    $id = $request -> input('replyID');
     $reply = Freply::find($id);
-    if($user->roleID == 1 || $user->id == $reply->replyAuthor)
+    if($user -> roleID == 1 || $user -> id == $reply -> userID)
     {
-      $user = User::where('id', '=', $reply->replyAuthor)->first();
-      $topic = Ftopic::find($reply->topicID);
+      $user = User::where('id', '=', $reply -> userID) -> first();
+      $topic = Ftopic::find($reply -> replyID);
 
-      if($user->replies > 0)
+      if($user -> replies > 0)
       {
-        $user->replies = $user->replies - 1;
-        $user->save();
+        $user -> replies = $user -> replies - 1;
+        $user -> save();
       }
 
-      if($topic->topicReplies > 0)
+      if($topic -> topicReplies > 0)
       {
-        $topic->topicReplies = $topic->topicReplies - 1;
-        $topic->save();
+        $topic -> topicReplies = $topic -> topicReplies - 1;
+        $topic -> save();
       }
 
-      $reply->delete();
+      $reply -> delete();
 
       return Response::json(['success'=> 'Your reply has been removed.']);
     } else {
       return Response::json(['error'=> 'Unable to remove.']);
     }
   }
-
-
+  
 }
