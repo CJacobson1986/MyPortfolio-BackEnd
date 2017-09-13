@@ -17,8 +17,8 @@ Route::get('editUser/{id}', 'UsersController@editUser');
 Route::post('deleteUser/{id}', 'UsersController@deleteUser');
 Route::post('updateProfile/{id}', 'UsersController@updateProfile');
 
-//(Admin)UsersController 
-Route::post('addRole', 'UsersController@storeRole');
+//(Admin)UsersController
+Route::post('storeRole', 'UsersController@storeRole');
 Route::get('editRole/{id}', 'UsersController@editRole');
 Route::put('updateRole/{id}', 'UsersController@updateRole');
 Route::post('deleteRole/{id}', 'UsersController@deleteRole');
@@ -30,10 +30,11 @@ Route::get('createTopic', 'ContentController@createTopic');
 Route::post('storeTopic', 'ContentController@storeTopic');
 Route::post('updateTopic/{id}','ContentController@updateTopic');
 Route::post('deleteTopic/{id}', 'ContentController@deleteTopic');
-Route::get('setFeature/{id}', 'ContentController@setFeature');
+//Route::get('setFeature/{id}', 'ContentController@setFeature');
 Route::get('getDetail/{slug}', 'ContentController@getDetail');
 Route::get('getInfo', 'ContentController@getInfo');
 Route::get('main', 'ContentController@main');
+//Route::get('getFeatured', 'ContentController@getFeatured');
 
 //(Channels)RecomsController
 Route::post('storeChannel', 'RecomsController@storeChannel');
@@ -50,9 +51,9 @@ Route::post('postReply', 'CommentController@storeReply');
 
 //(Search)RecomsController
 Route::post('search', 'RecomsController@search');
-Route::get('getTopics/channel={channel}&count={count}', 'RecomsController@getTopics');
+Route::get('getTopics/channel={channel}&count={count}', 'ContentController@getTopics');
 Route::get('getNew/channel={channel}&count={count}', 'RecomsController@getNew');
-Route::get('getFeatured', 'RecomsController@getFeatured');
+
 
 //CatchAll
 Route::any('{path?}', 'MainController@index')->where("path", ".+");

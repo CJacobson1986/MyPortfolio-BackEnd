@@ -3,77 +3,113 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Requests;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
+use JWTAuth;
+use Auth;
+use App\Ftopic;
+use App\Freply;
+use App\User;
+use App\Fchannel;
+use App\Option;
+use \DB;
+use \Response;
+use \Input;
+use \Image;
+use \File;
+use \Mail;
+use \DateTime;
+use \Purifier;
+use GrahamCampbell\Markdown\Facades\Markdown;
+use League\HTMLToMarkdown\HtmlConverter;
 
 class ContentController extends Controller
 {
+  public function __construct()
+  {
+    $this->middleware('jwt.auth', ['only' => ['storeTopic', 'updateTopic', 'setFeature', 'deleteTopic', 'getTopics', 'getDetail']]);
+  }
+
   public function getInfo(Request $request)
   {
-    $info = Option::select('website')->first();
+    $info = Option::select('website') -> first();
 
     return Response::json($info);
   }
 
-  public function main(Request $request)
+  /*public function getFeatured(Request $request)
+  {
+    $features = Ftopic::where('ftopics.topicFeature', '=', 1) ->
+    join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+    join('users', 'ftopics.userID', '=', 'users.id') ->
+    orderBy('ftopics.id', 'DESC') ->
+    select('ftopics.id', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicChannel',
+    'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> get();
+
+    return Response::json($features);
+  }*/
+
+  public function main()
   {
     $options = Option::select('website', 'baseurl', 'siteLogo', 'aboutWebsite') -> first();
 
     return Response::json(['options' => $options]);
   }
 
-  public function getTopics(Request $request, $channel = 0, $count = 25)
+  public function getTopics($channel = 0, $count = 25)
   {
     if($channel == '0')
     {
-      $topics = Ftopic::where('ftopics.topicFeature', '=', 0) -> join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> join('users', '=', 'users.id') -> orderBy('ftopics.userID, ''DESC') -> select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel', 'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> paginate($count);
-      foreach($topics as $key => $value)
-      {
-        $reply = Freply::where('freplies.topicID', '=', $value->id) -> join('users', '=', 'users.id') -> orderBy('freplies.userID', 'desc') -> first();
-        if(!empty($reply))
-        {
-          $value['name'] = $reply->name;
-          $value['avatar'] = $reply->avatar;
-        }
-      }
+      $topics = Ftopic::join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+      join('users', 'ftopics.userID', '=', 'users.id') ->
+      orderBy('ftopics.updated_at', 'DESC') ->
+      select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel', 'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> paginate($count);
     }
     else
     {
-      $channel = Fchannel::where('channelSlug', '=', $channel) -> select('id', 'channelTitle', 'channelDesc') -> first();
+      $channel = Fchannel::where('channelSlug', '=', $channel) ->
+      select('id', 'channelTitle', 'channelDesc') -> first();
 
-      $topics = Ftopic::where('ftopics.topicFeature', '=', 0) -> where('ftopics.topicChannel', '=', $channel -> id) -> join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> join('users', '=', 'users.id') -> orderBy('ftopics.userID', 'ftopics.created_at', 'DESC') -> select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicChannel', 'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> paginate($count);
-
-      foreach($topics as $key => $value)
-      {
-        $reply = Freply::where('freplies.topicID', '=', $value -> id) -> join('users', '=', 'users.id') -> orderBy('users.id', 'freplies.created_at', 'desc') -> first();
-        if(!empty($reply))
-        {
-          $value['name'] = $reply -> name;
-          $value['avatar'] = $reply -> avatar;
-        }
-      }
+      $topics = Ftopic::where('ftopics.topicChannel', '=', $channel -> id) ->
+       join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+       join('users', 'ftopics.userID', '=', 'users.id') ->
+       orderBy('ftopics.userID', 'ftopics.created_at', 'DESC') ->
+       select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicChannel', 'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> paginate($count);
     }
     return Response::json($topics);
   }
 
-  public function getDetail(Request $request, $slug)
+  public function getDetail($slug)
   {
-    $topic = Ftopic::where('ftopics.topicSlug', '=', $slug) -> join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicChannel', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicBody', 'fchannels.channelTitle', 'ftopics.allowReplies') -> first();
+    $topic = Ftopic::where('ftopics.topicSlug', '=', $slug) ->
+    join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+    select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicChannel', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicBody', 'fchannels.channelTitle', 'ftopics.allowReplies') -> first();
 
-    $user = User::where('id', '=', $topic -> userID) -> select('id', 'name', 'avatar') -> first();
+    $user = User::where('id', '=', $topic -> userID) ->
+    select('id', 'name', 'avatar') -> first();
 
     $topic -> timestamps = false;
     $topic -> increment('topicViews');
 
-    $previousTopic = Ftopic::where('ftopics.id', '<', $topic -> id) -> where('topicChannel', '=', $topic -> topicChannel) -> select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel') -> orderBy('ftopics.id', 'ftopics.userID', 'desc') -> first();
+    $previousTopic = Ftopic::where('ftopics.id', '<', $topic -> id) ->
+    where('topicChannel', '=', $topic -> topicChannel) ->
+    select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel') ->
+    orderBy('ftopics.id', 'ftopics.userID', 'desc') -> first();
 
-    $nextTopic = Ftopic::where('ftopics.id', '>', $topic->id) -> where('topicChannel', '=', $topic -> topicChannel) -> select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel') ->orderBy ('ftopics.id', 'ftopics.userID', 'DESC') -> first();
+    $nextTopic = Ftopic::where('ftopics.id', '>', $topic -> id) ->
+    where('topicChannel', '=', $topic -> topicChannel) ->
+    select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel') ->
+    orderBy ('ftopics.id', 'ftopics.userID', 'DESC') -> first();
 
     return Response::json(['topic' => $topic, 'user' => $user, 'previousTopic' => $previousTopic, 'nextTopic' => $nextTopic]);
   }
 
-  public function createTopic(Request $request)
+  public function createTopic()
   {
     $user = Auth::user();
-    $channels = Fchannel::where('channelArchived', '=', 0) -> select('id', 'channelTitle') -> get();
+    $channels = Fchannel::where('channelArchived', '=', 0) ->
+    select('id', 'channelTitle') -> get();
 
     return Response::json($channels);
   }
@@ -81,16 +117,19 @@ class ContentController extends Controller
   public function storeTopic(Request $request)
   {
     $user = Auth::user();
-    $validator = Validator::make($request->all(), [
+    $validator = Validator::make($request -> all(),
+    [
       'topicTitle'  =>  'required',
       'topicChannel' => 'required',
       'topicBody' => 'required'
     ]);
 
-    if ($validator->fails()) {
-      return Response::json(['error'=> 'Please fill out all topic fields.']);
+    if ($validator->fails())
+    {
+      return Response::json(['error' => 'Please fill out all topic fields.']);
     }
-    else {
+    else
+    {
 
       $topicTitle = $request -> input('topicTitle');
       $topicBody = $request -> input('topicBody');
@@ -109,11 +148,12 @@ class ContentController extends Controller
         $topicSlug = substr($topicSlug, 0, 15);
       }
 
-      if (Ftopic::where('topicSlug', '=', $topicSlug) -> exists()) {
+      if (Ftopic::where('topicSlug', '=', $topicSlug) -> exists())
+      {
          $topicSlug = $topicSlug.'_'.mt_rand(1, 9999);
       }
 
-      $pastTopics = Ftopic::where('id', '=', $user -> id) -> select('userID') -> orderBy('userID', 'created_at', 'DESC') -> skip(5) -> take(1) -> first();
+      /*$pastTopics = Ftopic::where('userID', '=', $user -> id) -> select('userID', 'created_at') -> orderBy('userID', 'DESC') -> skip(5) -> take(1) -> first();
       $currentTime = date('Y-m-d H:i:s');
 
       if(!empty($pastTopics) && $user -> roleID != 1)
@@ -122,31 +162,35 @@ class ContentController extends Controller
         $datetime2 = new DateTime($currentTime);
         $interval = $datetime1 -> diff($datetime2);
 
-        if($interval -> format('%a%H') < 1) {
-          return Response::json(['sorry'=> 'Please wait to enter another topic.']);
-        }
-      }
+        if($interval -> format('%a%H') < 1)
+          {
+            return Response::json(['sorry'=> 'Please wait to enter another topic.']);
+          }
+      }*/
 
       if(strlen($topicBody) > 1500)
       {
         return Response::json(['sorry'=> 'Please limit your entry to 1500 characters.']);
       }
-      else {
+      else
+      {
 
-        $topicBody = Markdown::convertToHtml($topicBody);
-        $topicBody = ($topicBody);
+        //$topicBody = Markdown::convertToHtml($topicBody);
+        //$topicBody = ($topicBody);
 
-        $converter = new HtmlConverter();
-        $topicBody = $converter -> convert($topicBody);
+        //$converter = new HtmlConverter();
+        //$topicBody = $converter -> convert($topicBody);
 
         if(substr_count($topicBody, 'img') > 5 || substr_count($topicBody, 'href') > 5 || substr_count($topicBody, 'youtube.com') > 2)
         {
           return Response::json(['error'=> 'Please dont spam, too many links.']);
         }
-        else {
+        else
+        {
           $topic = new Ftopic;
 
           $topic -> topicTitle = $topicTitle;
+          $topic -> userID = $user -> id;
           $topic -> topicBody = $topicBody;
           $topic -> topicChannel = $topicChannel;
           $topic -> topicSlug = $topicSlug;
@@ -157,10 +201,10 @@ class ContentController extends Controller
           $topic -> allowReplies = $allowReplies;
           $topic -> save();
 
-          $channelCount = Fchannel::where('id', '=', $topicChannel) -> increment('channelTopics');
-          $userCount = User::where('name', '=', $user->name) -> increment('topics');
-
-          $topicData = Ftopic::where('ftopics.id', '=', $topic->id) -> join('users', 'ftopics.userID', '=', 'users.id') -> join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicBody', 'ftopics.topicChannel', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicReplies', 'ftopics.topicFeature',  'ftopics.allowReplies', 'users.id', 'users.avatar', 'users.name', 'fchannels.channelTitle') -> first();
+          $topicData = Ftopic::where('ftopics.id', '=', $topic->id) ->
+          join('users', 'ftopics.userID', '=', 'users.id') ->
+          join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+          select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicBody', 'ftopics.topicChannel', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicReplies', 'ftopics.topicFeature',  'ftopics.allowReplies', 'users.id', 'users.avatar', 'users.name', 'fchannels.channelTitle') -> first();
           return Response::json($topicData);
         }
       }
@@ -229,11 +273,12 @@ class ContentController extends Controller
           }
           else {
 
-            $topicBody = Markdown::convertToHtml($topicBody);
+            /*$topicBody = Markdown::convertToHtml($topicBody);
             $topicBody = $topicBody;
 
             $converter = new HtmlConverter();
             $topicBody = $converter -> convert($topicBody);
+            */
 
             if(substr_count($topicBody, 'img') > 5 || substr_count($topicBody, 'href') > 5 || substr_count($topicBody, 'youtube.com') > 2)
             {
@@ -246,18 +291,17 @@ class ContentController extends Controller
         }
         if($topicChannel != NULL)
         {
-          if($topic -> topicChannel != $topicChannel)
-          {
-            Fchannel::where('id', '=', $topic -> topicChannel) -> decrement('channelTopics');
-            Fchannel::where('id', '=', $topicChannel) -> increment('channelTopics');
-          }
+
           $topic -> topicChannel = $topicChannel;
         }
 
         $topic -> allowReplies = $allowReplies;
         $topic -> save();
 
-        $topicData = Ftopic::where('ftopics.id', '=', $topic -> id) -> join('users', '=', 'users.id') -> join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> select('ftopics.id', 'ftopiics.userID', 'ftopics.topicTitle', 'ftopics.topicBody', 'ftopics.topicChannel', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicReplies', 'ftopics.topicFeature', 'ftopics.allowReplies', 'users.id', 'users.avatar', 'users.name', 'fchannels.channelTitle') -> first();
+        $topicData = Ftopic::where('ftopics.id', '=', $topic -> id) ->
+        join('users', 'ftopics.userID', '=', 'users.id') ->
+        join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+        select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicBody', 'ftopics.topicChannel', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicReplies', 'ftopics.topicFeature', 'ftopics.allowReplies', 'users.id', 'users.avatar', 'users.name', 'fchannels.channelTitle') -> first();
         return Response::json($topicData);
       }
     } else {
@@ -312,7 +356,7 @@ class ContentController extends Controller
     }
   }
 
-  public function setFeature(Request $request, $id)
+  /*public function setFeature(Request $request, $id)
   {
     $user = Auth::user();
     if($user -> roleID == 1)
@@ -335,7 +379,7 @@ class ContentController extends Controller
     } else {
       return Response::json(['error'=> 'Unauthorized user.']);
     }
-  }
+  }*/
 
 
 }

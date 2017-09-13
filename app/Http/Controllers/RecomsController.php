@@ -36,54 +36,37 @@ class RecomsController extends Controller
       return File::get('index.html');
   }
 
-  public function getNew(Request $request, $channel = 0, $count = 25)
+  public function getNew($channel = 0, $count = 25)
   {
     if($channel == '0')
     {
-      $topics = Ftopic::join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> join('users', '=', 'users.id') -> orderBy('fchannels.id', 'fchannels.created_at', 'DESC') -> select('ftopics.id', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicChannel', 'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> paginate($count);
+      $topics = Ftopic::join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+      join('users', 'ftopics.userID', '=', 'users.id') ->
+      orderBy('fchannels.id', 'fchannels.created_at', 'DESC') ->
+      select('ftopics.id', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicChannel', 'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> paginate($count);
     }
     else
     {
-      $channel = Fchannel::where('channelSlug', '=', $channel) -> select('id', 'channelTitle', 'channelDesc') -> first();
-      $topics = Ftopic::where('ftopics.topicChannel', '=', $channel->id) -> join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> join('users', '=', 'users.id') -> orderBy ('fchannels.id', 'fchannels.created_at', 'DESC') -> select('ftopics.id', 'ftopics.topicTitle', 'ftopics.topicSlug','ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicChannel', 'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> paginate($count);
-      foreach($topics as $key => $value)
-      {
-        $reply = Freply::where('freplies.topicID', '=', $value->id) -> join('users', 'freplies.userID', '=', 'users.id') -> orderBy('freplies.id', 'freplies.created_at', 'DESC') -> first();
-        if(!empty($reply))
-        {
-          $value['name'] = $reply->name;
-          $value['avatar'] = $reply->avatar;
-        }
-      }
+      $channel = Fchannel::where('channelSlug', '=', $channel) ->
+      select('id', 'channelTitle', 'channelDesc') -> first();
+
+      $topics = Ftopic::where('ftopics.topicChannel', '=', $channel->id) ->
+      join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+      join('users', 'ftopics.userID', '=', 'users.id') ->
+      orderBy ('fchannels.id', 'fchannels.created_at', 'DESC') ->
+      select('ftopics.id', 'ftopics.topicTitle', 'ftopics.topicSlug','ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicChannel', 'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> paginate($count);
     }
     return Response::json($topics);
   }
 
-  public function getFeatured(Request $request)
-  {
-    $features = Ftopic::where('ftopics.topicFeature', '=', 1) -> join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> join('users', '=', 'users.id') -> orderBy('fchannels.id', 'fchannels.created_at', 'DESC') -> select('ftopics.id', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicChannel',
-    'fchannels.channelSlug', 'fchannels.channelTitle', 'users.name', 'users.avatar') -> get();
-    foreach($features as $key => $value)
-    {
-      $reply = Freply::where('freplies.topicID', '=', $value -> id) -> join('users', 'freplies.userID', '=', 'users.id') -> orderBy('ftopics.id', 'ftopics.created_at', 'DESC') -> first();
-      if(!empty($reply))
-      {
-        $value['name'] = $reply->name;
-        $value['avatar'] = $reply->avatar;
-      }
-    }
-
-    return Response::json($features);
-  }
-
-  public function getChannels(Request $request)
+  public function getChannels()
   {
     $channels = Fchannel::where('channelArchived', '=', 0) -> select('id', 'created_at', 'channelTitle', 'channelSlug', 'channelDesc') -> orderBy('id', 'created_at', 'DESC') -> get();
 
     return Response::json($channels);
   }
 
-  public function getChannel(Request $request, $slug)
+  public function getChannel($slug)
   {
     $channel = Fchannel::where('channelSlug', '=', $slug) -> select('id', 'created_at', 'channelTitle', 'channelSlug', 'channelDesc') -> first();
 
@@ -92,18 +75,23 @@ class RecomsController extends Controller
 
 public function search(Request $request)
 {
-  $rules = array(
-    'searchContent' => 'required'
+  $rules = array
+  ('searchContent' => 'required'
   );
-  $validator = Validator::make($request->all(), $rules);
 
-  if ($validator->fails()) {
-    return Response::json(['error'=> 'Please enter search content.']);
-  } else {
+  $validator = Validator::make($request->all(),$rules);
 
-    $searchContent = $request -> input('searchContent');
+  if ($validator -> fails())
+  {return Response::json(['error'=> 'Please enter search content.']);
+  }
 
-    $result = Ftopic::where('ftopics.topicTitle', '%'.$searchContent.'%') -> join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') -> orderBy('ftopics.id', 'ftopics.created_at', 'DESC') -> select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicChannel', 'fchannels.channelTitle') -> paginate(25);
+  else
+  {$searchContent = $request -> input('searchContent');
+
+    $result = Ftopic::where('ftopics.topicTitle', 'LIKE', '%'.$searchContent.'%') ->
+    join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
+    orderBy('fChannels.id', 'fchannels.created_at', 'DESC') ->
+    select('fchannels.id', 'ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicChannel', 'fchannels.channelTitle') -> paginate(25);
 
     return Response::json($result);
   }

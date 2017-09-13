@@ -25,7 +25,7 @@ class UsersController extends Controller
     $this -> middleware('jwt.auth', ['except' => ['getUsers']]);
   }
 
-  public function getUsers(Request $request)
+  public function getUsers()
   {
     $user = Auth::user();
 
@@ -35,7 +35,7 @@ class UsersController extends Controller
     return Response::json(['users' => $users, 'roles' => $roles]);
   }
 
-  public function getUser(Request $request, $name)
+  public function getUser($name)
   {
     $user = User::where('users.name', '=', $name) -> where('users.ban', '=', 0) -> join('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.avatar', 'roles.roleName') -> first();
 
@@ -60,7 +60,7 @@ public function deactivateUser()
   return Response::json(['success'=> 'User has been deactivated.']);
 }
 
-  public function editUser(Request $request, $id)
+  public function editUser($id)
   {
     $user = Auth::user();
     if($user->roleID == 1)
@@ -73,7 +73,7 @@ public function deactivateUser()
     }
   }
 
-  public function banUser(Request $request, $id)
+  public function banUser($id)
   {
     $user = Auth::user();
     if($user -> roleID == 1)
@@ -225,7 +225,7 @@ public function deactivateUser()
     }
   }
 
-  public function editRole(Request $request, $id)
+  public function editRole($id)
   {
     $user = Auth::user();
     if($user -> roleID == 1)

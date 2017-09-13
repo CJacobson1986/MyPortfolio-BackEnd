@@ -3,6 +3,26 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Http\Requests;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Validator;
+use JWTAuth;
+use Auth;
+use App\Ftopic;
+use App\Freply;
+use App\User;
+use App\Fchannel;
+use App\Option;
+use \DB;
+use \Response;
+use \Input;
+use \Image;
+use \File;
+use \Mail;
+use \DateTime;
+use \Purifier;
+use GrahamCampbell\Markdown\Facades\Markdown;
+use League\HTMLToMarkdown\HtmlConverter;
 
 class CommentController extends Controller
 {
@@ -189,5 +209,5 @@ class CommentController extends Controller
       return Response::json(['error'=> 'Unable to remove.']);
     }
   }
-  
+
 }
