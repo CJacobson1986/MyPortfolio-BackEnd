@@ -28,7 +28,7 @@ class ContentController extends Controller
 {
   public function __construct()
   {
-    $this->middleware('jwt.auth', ['only' => ['storeTopic', 'updateTopic', 'setFeature', 'deleteTopic', 'getTopics', 'getDetail']]);
+    $this->middleware('jwt.auth', ['only' => ['storeTopic', 'updateTopic', 'setFeature', 'deleteTopic']]);
   }
 
   public function getInfo(Request $request)
