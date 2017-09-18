@@ -111,7 +111,7 @@ class ContentController extends Controller
     $channels = Fchannel::where('channelArchived', '=', 0) ->
     select('id', 'channelTitle') -> get();
 
-    return Response::json($channels);
+    return Response::json(['channels' => $channels]);
   }
 
   public function storeTopic(Request $request)
