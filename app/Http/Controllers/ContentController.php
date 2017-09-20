@@ -92,17 +92,7 @@ class ContentController extends Controller
     $topic -> timestamps = false;
     $topic -> increment('topicViews');
 
-    $previousTopic = Ftopic::where('ftopics.id', '<', $topic -> id) ->
-    where('topicChannel', '=', $topic -> topicChannel) ->
-    select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel') ->
-    orderBy('ftopics.id', 'ftopics.userID', 'desc') -> first();
-
-    $nextTopic = Ftopic::where('ftopics.id', '>', $topic -> id) ->
-    where('topicChannel', '=', $topic -> topicChannel) ->
-    select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicSlug', 'ftopics.topicChannel') ->
-    orderBy ('ftopics.id', 'ftopics.userID', 'DESC') -> first();
-
-    return Response::json(['topic' => $topic, 'user' => $user, 'previousTopic' => $previousTopic, 'nextTopic' => $nextTopic]);
+    return Response::json(['topic' => $topic, 'user' => $user ]);
   }
 
   public function createTopic()

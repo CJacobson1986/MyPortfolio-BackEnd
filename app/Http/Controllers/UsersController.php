@@ -29,15 +29,15 @@ class UsersController extends Controller
   {
     $user = Auth::user();
 
-    $users = User::join('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.roleID', 'users.activated', 'users.ban', 'roles.roleName') -> get();
-    $roles = Role::select('id', 'roleName', 'roleSlug', 'roleDesc', 'roleCount') -> get();
+    $users = User::leftJoin('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.roleID') -> get();
+    $roles = Role::select('id', 'name') -> get();
 
     return Response::json(['users' => $users, 'roles' => $roles]);
   }
 
   public function getUser($name)
   {
-    $user = User::where('users.name', '=', $name) -> where('users.ban', '=', 0) -> join('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.avatar', 'roles.roleName') -> first();
+    $user = User::where('users.name', '=', $name) -> where('users.ban', '=', 0) -> join('roles', 'users.roleID', '=', 'roles.id') -> select('users.id', 'users.name', 'users.avatar') -> first();
 
     if(!empty($user))
     {
@@ -214,7 +214,7 @@ public function deactivateUser()
 
         $role = new Role;
 
-        $role -> name = $roleName;
+        $role -> id = ;
         $role -> save();
 
         $roleData = Role::where('id', '=', $role->id) -> select('id') -> first();
