@@ -35,6 +35,8 @@ Route::get('getDetail/{slug}', 'ContentController@getDetail');
 Route::get('getInfo', 'ContentController@getInfo');
 Route::get('main', 'ContentController@main');
 //Route::get('getFeatured', 'ContentController@getFeatured');
+Route::post('storePhoto', 'PhotosController@store');
+Route::get('getPictures', 'PhotosController@getPictures');
 
 //(Channels)RecomsController
 Route::post('storeChannel', 'RecomsController@storeChannel');

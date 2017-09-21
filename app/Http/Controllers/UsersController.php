@@ -214,7 +214,7 @@ public function deactivateUser()
 
         $role = new Role;
 
-        $role -> id = ;
+        $role -> name = $roleName;
         $role -> save();
 
         $roleData = Role::where('id', '=', $role->id) -> select('id') -> first();
