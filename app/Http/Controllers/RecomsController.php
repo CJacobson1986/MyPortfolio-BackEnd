@@ -75,14 +75,16 @@ class RecomsController extends Controller
 
 public function search(Request $request)
 {
-  $rules = array
-  ('searchContent' => 'required'
-  );
+  $rules = [
+    'searchContent' => 'required'
+  ];
 
-  $validator = Validator::make($request->all(),$rules);
+  $taskContent = $request ->input('searchContent');
+
+  $validator = Validator::make (Purifier::clean ($request->all()),$rules);
 
   if ($validator -> fails())
-  {return Response::json(['error'=> 'Please enter search content.']);
+  {return Response::json(['error' => 'Please enter search content.']);
   }
 
   else
