@@ -30,7 +30,7 @@ class CommentController extends Controller
   {
     $topic = Ftopic::where('ftopics.topicSlug', '=', $slug) -> select('ftopics.id') -> first();
 
-    $replies = Freply::where('freplies.topicID', '=', $topic -> id) -> join('users', '=', 'users.id') -> orderBy('freplies.userID', 'freplies.created_at', 'DESC') -> select('freplies.id', 'freplies,userID', 'users.avatar', 'users.name') -> paginate(25) -> toArray();
+    $replies = Freply::where('freplies.topicID', '=', $topic -> id) -> join('users', 'freplies.userID', '=', 'users.id') -> orderBy('freplies.userID', 'freplies.created_at', 'DESC') -> select('freplies.id', 'freplies,userID', 'users.avatar', 'users.name') -> paginate(25) -> toArray();
 
 
     return Response::json(['replies' => $replies]);
@@ -45,8 +45,9 @@ class CommentController extends Controller
     $validator = Validator::make($request -> all(), $rules);
 
     if ($validator -> fails()) {
-        return Response::json(['error'=> 'Please fill out all fields']);
-    } else {
+        return Response::json(['message'=> 'Please fill out all fields']);
+    }
+    else {
 
       $topicID = $request -> input('topicID');
       $replyBody = $request -> input('replyBody');
@@ -55,59 +56,37 @@ class CommentController extends Controller
       $topicCheck = Ftopic::find($topicID);
       if($topicCheck -> allowReplies == 0)
       {
-        return Response::json(['Sorry'=> 'Did not find the topic.']);
-      }
-
-      $pastReplies = Freply::where('userID', '=', $userID -> id) -> select('id', 'created_at') -> orderBy('id', 'created_at', 'DESC') -> skip(5) -> take(1) -> first();
-      $currentTime = date('Y-m-d H:i:s');
-
-      if(!empty($pastReplies) && $userID -> roleID != 1)
-      {
-        $datetime1 = new DateTime($pastReplies -> created_at);
-        $datetime2 = new DateTime($currentTime);
-        $interval = $datetime1 -> diff($datetime2);
-
-        if($interval -> format('%a%H') < 1) {
-          return Response::json(['Sorry'=> 'Please wait longer to make another reply.']);
-        }
-      }
+        return Response::json(['message'=> 'Did not find the topic.']);
+      };
 
       if(strlen($replyBody) > 500)
       {
-        return Response::json(['Sorry'=> 'Please limit your responses to less than 500 characters.']);
-      }
+        return Response::json(['message'=> 'Please limit your responses to less than 500 characters.']);
+      };
+      if(substr_count($replyBody, 'img') > 1 || substr_count($replyBody, 'href') > 1 || substr_count($replyBody, 'youtube.com') > 1)
+      {
+        return Response::json(['message'=> 'Please dont spam, too many links.']);
+      };
       else {
 
-        $replyBody = Markdown::convertToHtml($replyBody);
-        $replyBody = Purifier::clean($replyBody);
 
-        $converter = new HtmlConverter();
-        $replyBody = $converter -> convert($replyBody);
+        $reply = new Freply;
+        $reply -> topicID = $topicID;
+        $reply -> replyBody = $replyBody;
+        $reply -> userID = $userID -> id;
 
-        if(substr_count($replyBody, 'img') > 1 || substr_count($replyBody, 'href') > 1 || substr_count($replyBody, 'youtube.com') > 1)
-        {
-          return Response::json(['error'=> 'Please dont spam, too many links.']);
-        }
-        else {
+        $reply -> save();
 
+        $userID -> increment('replies');
+        $topic = Ftopic::where('id', '=', $topicID) -> first();
+        $topic -> increment('topicReplies');
 
-          $reply = new Freply;
-          $reply -> topicID = $topicID;
-          $reply -> replyBody = $replyBody;
-          $reply -> userID = $userID -> id;
-
-          $reply -> save();
-
-          $userID -> increment('replies');
-          $topic = Ftopic::where('id', '=', $topicID) -> first();
-          $topic -> increment('topicReplies');
-
-          $replyData = Freply::where('freplies.id', '=', $reply -> id) -> join('users', 'freplies.userID', '=', 'users.id') -> select('freplies.id', 'freplies.created_at', 'freplies.replyBody', 'users.avatar', 'users.name') -> first();
-          return Response::json($replyData);
-        }
+        $replyData = Freply::where('freplies.id', '=', $reply -> id) -> join('users', 'freplies.userID', '=', 'users.id') -> select('freplies.id', 'freplies.created_at', 'freplies.replyBody', 'users.avatar', 'users.name') -> first();
+        return Response::json($replyData);
       }
     }
-  }
+  };
+
 
   public function updateReply(Request $request, $id)
   {

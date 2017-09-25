@@ -49,7 +49,7 @@ Route::get('getChannel/{slug}', 'RecomsController@getChannel');
 Route::put('updateReply/{id}', 'CommentController@updateReply');
 Route::post('deleteReply', 'CommentController@deleteReply');
 Route::get('getReplies/{slug}', 'CommentController@getReplies');
-Route::post('postReply', 'CommentController@storeReply');
+Route::post('storeReply', 'CommentController@storeReply');
 
 //(Search)RecomsController
 Route::post('search', 'RecomsController@search');

@@ -84,7 +84,7 @@ class ContentController extends Controller
   {
     $topic = Ftopic::where('ftopics.topicSlug', '=', $slug) ->
     join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
-    select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicChannel', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicBody', 'fchannels.channelTitle', 'ftopics.allowReplies') -> first();
+    select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicChannel', 'ftopics.topicReplies', 'ftopics.topicViews', 'ftopics.topicBody', 'fchannels.channelTitle', 'ftopics.allowReplies', 'ftopics.topicSlug') -> first();
 
     $user = User::where('id', '=', $topic -> userID) ->
     select('id', 'name', 'avatar') -> first();
@@ -116,7 +116,7 @@ class ContentController extends Controller
 
     if ($validator->fails())
     {
-      return Response::json(['error' => 'Please fill out all topic fields.']);
+      return Response::json(['message' => 'Please fill out all topic fields.']);
     }
     else
     {
@@ -160,7 +160,7 @@ class ContentController extends Controller
 
       if(strlen($topicBody) > 1500)
       {
-        return Response::json(['sorry'=> 'Please limit your entry to 1500 characters.']);
+        return Response::json(['message'=> 'Please limit your entry to 1500 characters.']);
       }
       else
       {
@@ -173,7 +173,7 @@ class ContentController extends Controller
 
         if(substr_count($topicBody, 'img') > 5 || substr_count($topicBody, 'href') > 5 || substr_count($topicBody, 'youtube.com') > 2)
         {
-          return Response::json(['error'=> 'Please dont spam, too many links.']);
+          return Response::json(['message'=> 'Please dont spam, too many links.']);
         }
         else
         {
@@ -187,14 +187,13 @@ class ContentController extends Controller
           $topic -> topicViews = 0;
           $topic -> topicReplies = 0;
           $topic -> topicArchived = 0;
-          $topic -> topicFeature = 0;
           $topic -> allowReplies = $allowReplies;
           $topic -> save();
 
           $topicData = Ftopic::where('ftopics.id', '=', $topic->id) ->
           join('users', 'ftopics.userID', '=', 'users.id') ->
           join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
-          select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicBody', 'ftopics.topicChannel', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicReplies', 'ftopics.topicFeature',  'ftopics.allowReplies', 'users.id', 'users.avatar', 'users.name', 'fchannels.channelTitle') -> first();
+          select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicBody', 'ftopics.topicChannel', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicReplies',  'ftopics.allowReplies', 'users.id', 'users.avatar', 'users.name', 'fchannels.channelTitle') -> first();
           return Response::json($topicData);
         }
       }

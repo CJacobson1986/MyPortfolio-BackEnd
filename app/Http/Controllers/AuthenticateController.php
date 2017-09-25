@@ -36,7 +36,7 @@ class AuthenticateController extends Controller
     $validator = Validator::make(Purifier::clean($request->all()), $rules);
 
     if ($validator->fails()) {
-      return Response::json(['error' => 'Please fill out all fields.']);
+      return Response::json(['message' => 'Please fill out all fields.']);
     } else {
 
       $options = Option::find(1);
@@ -69,17 +69,17 @@ class AuthenticateController extends Controller
           $user->avatar = "https://invatar0.appspot.com/svg/".$sub.".jpg?s=100";
           $user->roleID = 2;
           $user->save();
-          return Response::json(['success'=>"Thank you for signing up."]);
+          return Response::json(['message'=>"Thank you for signing up."]);
         } else {
           if($userCheck->email === $email)
           {
             //Email Already Registered
-            return Response::json(['error'=> 'Email already registered.']);
+            return Response::json(['message'=> 'Email already registered.']);
           }
           elseif($userCheck->name === $username)
           {
             //Username already Registered
-            return Response::json(['error'=> 'Please choose another username.']);
+            return Response::json(['message'=> 'Please choose another username.']);
           }
         }
     }
@@ -98,21 +98,22 @@ class AuthenticateController extends Controller
         $credentials = compact("email", "password", $cred);
         try {
           if (! $token = JWTAuth::attempt($credentials)) {
-              return response()->json(['error' => 'invalid credentials']);
+              return response()->json(['message' => 'invalid credentials']);
           }
         } catch (JWTException $e) {
-            return response()->json(['error' => 'could_not_create_token']);
+            return response()->json(['message' => 'could_not_create_token']);
         }
         if($userCheck->ban == 1) {
           //User is banned
-          return Response::json(['So Sorry' => 'You have been banned.']);
+          return Response::json(['message' => 'You have been banned.']);
         }
         else {
+          return Response::json(['message' => 'Thank You for Loggin In']);
           return Response::json(compact('token'));
         }
       } else {
         //User not found
-        return Response::json(['error' => 'User not found.']);
+        return Response::json(['message' => 'User not found.']);
       }
   }
 
