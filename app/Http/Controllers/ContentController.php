@@ -178,7 +178,6 @@ class ContentController extends Controller
         else
         {
           $topic = new Ftopic;
-
           $topic -> topicTitle = $topicTitle;
           $topic -> userID = $user -> id;
           $topic -> topicBody = $topicBody;
@@ -194,7 +193,7 @@ class ContentController extends Controller
           join('users', 'ftopics.userID', '=', 'users.id') ->
           join('fchannels', 'ftopics.topicChannel', '=', 'fchannels.id') ->
           select('ftopics.id', 'ftopics.userID', 'ftopics.topicTitle', 'ftopics.topicBody', 'ftopics.topicChannel', 'ftopics.topicSlug', 'ftopics.topicViews', 'ftopics.topicReplies',  'ftopics.allowReplies', 'users.id', 'users.avatar', 'users.name', 'fchannels.channelTitle') -> first();
-          return Response::json($topicData);
+          return Response::json(['topicData' => $topicData, 'message' =>  'New Topic Created']);
         }
       }
     }

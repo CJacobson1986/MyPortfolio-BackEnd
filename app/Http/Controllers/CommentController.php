@@ -26,11 +26,15 @@ use League\HTMLToMarkdown\HtmlConverter;
 
 class CommentController extends Controller
 {
+  public function __construct()
+  {
+    $this->middleware('jwt.auth', ['only' => ['storeReply', 'updateReply', 'deleteReply']]);
+  }
   public function getReplies(Request $request, $slug)
   {
     $topic = Ftopic::where('ftopics.topicSlug', '=', $slug) -> select('ftopics.id') -> first();
 
-    $replies = Freply::where('freplies.topicID', '=', $topic -> id) -> join('users', 'freplies.userID', '=', 'users.id') -> orderBy('freplies.userID', 'freplies.created_at', 'DESC') -> select('freplies.id', 'freplies,userID', 'users.avatar', 'users.name') -> paginate(25) -> toArray();
+    $replies = Freply::where('freplies.topicID', '=', $topic -> id) -> join('users', 'freplies.userID', '=', 'users.id') -> orderBy('freplies.userID', 'freplies.created_at', 'DESC') -> select('freplies.id', 'freplies.userID', 'users.avatar', 'users.name', 'freplies.replyBody') -> paginate(25);
 
 
     return Response::json(['replies' => $replies]);
@@ -38,54 +42,53 @@ class CommentController extends Controller
 
   public function storeReply(Request $request)
   {
-    $rules = array(
+    $user = Auth::user();
+    $validator = Validator::make($request -> all(),
+    [
       'topicID'		=> 	'required',
-      'replyBody'			=>	'required'
-    );
-    $validator = Validator::make($request -> all(), $rules);
+      'replyBody'	=>	'required'
+    ]);
 
-    if ($validator -> fails()) {
+    if ($validator -> fails())
+    {
         return Response::json(['message'=> 'Please fill out all fields']);
     }
     else {
-
       $topicID = $request -> input('topicID');
       $replyBody = $request -> input('replyBody');
-      $userID = Auth::user();
 
       $topicCheck = Ftopic::find($topicID);
+
       if($topicCheck -> allowReplies == 0)
       {
         return Response::json(['message'=> 'Did not find the topic.']);
-      };
+      }
 
       if(strlen($replyBody) > 500)
       {
         return Response::json(['message'=> 'Please limit your responses to less than 500 characters.']);
-      };
+      }
       if(substr_count($replyBody, 'img') > 1 || substr_count($replyBody, 'href') > 1 || substr_count($replyBody, 'youtube.com') > 1)
       {
         return Response::json(['message'=> 'Please dont spam, too many links.']);
-      };
-      else {
-
+      }
+      else
+      {
 
         $reply = new Freply;
-        $reply -> topicID = $topicID;
-        $reply -> replyBody = $replyBody;
-        $reply -> userID = $userID -> id;
+        $reply->topicID = $topicID;
+        $reply->replyBody = $replyBody;
+        $reply->userID = $user->id;
+        $reply->save();
 
-        $reply -> save();
-
-        $userID -> increment('replies');
         $topic = Ftopic::where('id', '=', $topicID) -> first();
-        $topic -> increment('topicReplies');
+        $topic->increment('topicReplies');
 
         $replyData = Freply::where('freplies.id', '=', $reply -> id) -> join('users', 'freplies.userID', '=', 'users.id') -> select('freplies.id', 'freplies.created_at', 'freplies.replyBody', 'users.avatar', 'users.name') -> first();
-        return Response::json($replyData);
+        return Response::json(['replyData' => $replyData, 'message' => 'Reply Successfully Created']);
       }
     }
-  };
+  }
 
 
   public function updateReply(Request $request, $id)

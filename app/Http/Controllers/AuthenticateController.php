@@ -108,8 +108,7 @@ class AuthenticateController extends Controller
           return Response::json(['message' => 'You have been banned.']);
         }
         else {
-          return Response::json(['message' => 'Thank You for Loggin In']);
-          return Response::json(compact('token'));
+          return Response::json(['token' => $token, 'message' =>  'Thank You for Loggin In']);
         }
       } else {
         //User not found
